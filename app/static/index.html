@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Reality Investigator</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand-mark">RI</div>
+    <div><strong>Reality Investigator</strong><span>Evidence workspace · Phase 1</span></div>
+    <div class="connection"><i></i> API connected</div>
+  </header>
+  <main>
+    <section class="intro">
+      <p class="eyebrow">INVESTIGATION WORKSPACE</p>
+      <h1>Build a traceable picture<br>from the evidence.</h1>
+      <p class="subhead">Add source files to a case. Every generated item stays linked to the file it came from.</p>
+    </section>
+
+    <section class="workspace">
+      <aside class="sidebar card">
+        <div class="section-heading"><div><p class="eyebrow">YOUR CASE</p><h2>Case details</h2></div><span class="case-icon">⌕</span></div>
+        <form id="case-form">
+          <label for="case-title">Case name</label>
+          <input id="case-title" name="title" maxlength="200" placeholder="e.g. Riverside incident" required>
+          <label for="case-description">Description <span class="optional">Optional</span></label>
+          <textarea id="case-description" name="description" rows="3" placeholder="A short note to help identify this investigation"></textarea>
+          <button class="button secondary" type="submit">Create case</button>
+        </form>
+        <div id="case-summary" class="case-summary hidden"></div>
+        <div class="sidebar-note"><span>ⓘ</span><p>Source files are preserved. Mock observations describe file metadata only; they do not analyze file contents.</p></div>
+      </aside>
+
+      <div class="main-column">
+        <section class="card upload-card">
+          <div class="section-heading"><div><p class="eyebrow">EVIDENCE INTAKE</p><h2>Add evidence</h2></div><span class="file-type">JPG · PNG · WEBP · PDF</span></div>
+          <form id="upload-form">
+            <label class="dropzone" id="dropzone" for="evidence-file">
+              <input id="evidence-file" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" hidden>
+              <span class="upload-icon">↑</span>
+              <span class="drop-title">Choose a file to upload</span>
+              <span class="drop-hint">or drop it here · maximum 20 MB</span>
+              <span id="selected-file" class="selected-file"></span>
+            </label>
+            <div class="upload-actions"><span id="upload-status" class="status-text">Create a case to begin.</span><button id="upload-button" class="button primary" type="submit" disabled>Upload evidence <span>→</span></button></div>
+          </form>
+        </section>
+
+        <section class="card timeline-card">
+          <div class="section-heading"><div><p class="eyebrow">CASE RECORD</p><h2>Evidence timeline</h2></div><span id="evidence-count" class="count-pill">0 items</span></div>
+          <div id="timeline" class="timeline empty-state"><div class="empty-symbol">◷</div><strong>Your timeline will appear here</strong><span>Upload a source file to start the record.</span></div>
+        </section>
+      </div>
+    </section>
+    <footer>Evidence-linked workspace <span>·</span> Schema v1.0 <span>·</span> All times shown in your browser's local timezone</footer>
+  </main>
+  <script src="/app.js" defer></script>
+</body>
+</html>
