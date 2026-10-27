@@ -1,0 +1,1 @@
+export const viewpoints = { perspective: [10, 8, 12] as [number,number,number], top: [0, 15, .01] as [number,number,number], front: [0, 5, 14] as [number,number,number] };
