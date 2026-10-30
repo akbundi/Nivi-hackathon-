@@ -1,25 +1,146 @@
-# Nivi Hackathon — Feature Branch
+# 🔍 3D Forensic Scene Visualization
 
-Interactive 3D forensic-scene reconstruction workspace built with React, TypeScript, Vite, Three.js and React Three Fiber.
+An interactive 3D forensic scene visualization platform designed to digitally reconstruct, explore, and analyze crime scenes using 3D objects, evidence markers, floor plans, and timeline-based scene navigation.
 
-## Run locally
+## 📌 Overview
+
+3D Forensic Scene Visualization aims to make crime scene investigation more interactive and understandable through a 3D environment.
+
+The platform allows investigators to visualize scene objects, navigate between different viewpoints, interact with evidence markers, and explore scene-related information in a structured way.
+
+It provides a foundation for digital crime scene reconstruction and spatial investigation.
+
+## ✨ Key Features
+
+- **3D Scene Visualization:** Explore forensic scenes in an interactive 3D environment.
+- **Object Rendering:** Visualize objects placed within the reconstructed scene.
+- **Evidence Markers:** Identify and interact with evidence points in the scene.
+- **Floor Plan Visualization:** View the scene layout through a floor plan.
+- **Scene Navigation:** Navigate through different viewpoints of the 3D environment.
+- **Camera Controls:** Explore the scene from different camera perspectives.
+- **Timeline Synchronization:** Connect timeline events with the corresponding scene state.
+- **Uncertainty Visualization:** Represent uncertain or estimated areas within the reconstruction.
+- **Scene Loading:** Load and render scene data.
+- **Scene API Integration:** Manage scene-related data through API services.
+
+## 🛠️ Tech Stack
+
+- **Frontend:** React.js, TypeScript
+- **3D Visualization:** Three.js / React Three Fiber
+- **Build Tool:** Vite
+- **Styling:** CSS
+- **Version Control:** Git & GitHub
+
+## 📂 Project Structure
+
+```text
+Nivi-Hackathon/
+│
+├── public/
+├── src/
+│   ├── camera/
+│   │   ├── CameraController/
+│   │   └── Viewpoints/
+│   │
+│   ├── floor_plan/
+│   │   └── FloorPlanRenderer/
+│   │
+│   ├── interactions/
+│   │   ├── EvidenceInteraction/
+│   │   ├── ObjectSelection/
+│   │   └── SceneNavigation/
+│   │
+│   ├── objects/
+│   │   ├── EvidenceMarker/
+│   │   ├── ObjectRenderer/
+│   │   └── UncertaintyOverlay/
+│   │
+│   ├── scene/
+│   │   ├── Environment/
+│   │   ├── Lighting/
+│   │   ├── SceneLoader/
+│   │   └── SceneRenderer/
+│   │
+│   ├── services/
+│   │   └── sceneApi.ts
+│   │
+│   ├── timeline/
+│   │   └── TimelineSceneSync/
+│   │
+│   ├── types/
+│   ├── utils/
+│   ├── App.tsx
+│   ├── main.tsx
+│   └── styles.css
+│
+├── tests/
+├── package.json
+├── package-lock.json
+├── tsconfig.json
+├── vite.config.ts
+└── README.md
+```
+
+## ⚙️ Installation & Setup
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/RIYAYADAV08/3d-Visualization.git
+```
+
+### 2. Navigate to the Project Directory
+
+```bash
+cd 3d-Visualization
+```
+
+### 3. Install Dependencies
 
 ```bash
 npm install
+```
+
+### 4. Start the Development Server
+
+```bash
 npm run dev
 ```
 
-## Added investigation tools
+### 5. Open in Browser
 
-- **GLTF / GLB objects:** Add a `modelUrl` property to any object in the scene JSON to load a GLTF/GLB asset. Objects without `modelUrl` continue to render as procedural geometry. Example: `"modelUrl": "/models/chair.glb"` (place the file under `public/models/`).
-- **Smooth camera focus:** Selecting an object or timeline event smoothly moves the camera toward it. Viewpoint buttons remain available.
-- **3D transform gizmo:** Select an object, then choose Translate, Rotate or Scale in the Gizmo toolbar and manipulate it directly in the canvas. Numeric inspector fields remain available.
-- **Forensic ruler:** Enable Measure, then click two object surfaces or two points on the floor. The scene draws a dashed connector and displays the distance in scene units.
-- **Timeline playback:** Use Play/Pause, the scrubber and playback-speed selector to step through timeline events.
-- **Scene exports:** Snapshot saves a PNG of the 3D canvas; JSON exports the current scene, metadata and any completed measurement; PDF Report opens a print-ready report that can be saved as PDF from the browser print dialog.
+Open the local URL displayed in your terminal, usually:
 
-## Notes
+```text
+http://localhost:5173
+```
 
-- `modelUrl` should be a URL/path accessible by the browser. For local assets, put models in `public/` and reference them with an absolute path such as `/models/evidence.glb`.
-- The PDF export uses the browser's print-to-PDF flow, so choose **Save as PDF** in the print dialog.
-- Confidence values are illustrative demo metadata and should not be treated as verified forensic conclusions.
+## 🎯 Project Objectives
+
+- Create an interactive digital representation of forensic scenes.
+- Improve spatial understanding through 3D visualization.
+- Enable structured exploration of evidence and scene objects.
+- Connect investigation timelines with scene visualization.
+- Provide a foundation for advanced forensic reconstruction tools.
+
+## 🚀 Future Enhancements
+
+- Realistic GLTF/GLB 3D model integration.
+- Smooth animated camera transitions.
+- Interactive 3D transformation gizmos.
+- 3D distance measurement and forensic ruler.
+- Automated timeline playback controls.
+- High-resolution scene snapshots.
+- JSON and PDF forensic report generation.
+
+## 👩‍💻 Contributors
+
+Developed as part of a hackathon project focused on 3D visualization and forensic scene reconstruction.
+
+## 📄 License
+
+This project is developed for educational, research, and hackathon purposes.
+
+---
+
+**3D Forensic Scene Visualization — Bringing Digital Crime Scene Reconstruction to Life.**
