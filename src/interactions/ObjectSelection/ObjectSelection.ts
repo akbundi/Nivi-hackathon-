@@ -1,0 +1,1 @@
+export function toggleSelection(current: string | null, next: string): string | null { return current === next ? null : next; }
