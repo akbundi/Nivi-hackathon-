@@ -91,3 +91,23 @@ def test_image_yolo_object_detection(synthetic_image_no_exif: Path):
     assert result["available"] is True
     assert result["status"] == "completed"
     assert isinstance(result["objects"], list)
+
+
+def test_image_thumbnail_generation(synthetic_image_no_exif: Path, tmp_path: Path):
+    thumb_dir = tmp_path / "custom_thumbs"
+    record = process_image(
+        synthetic_image_no_exif,
+        case_id="case-thumb",
+        run_ai=False,
+        generate_thumb=True,
+        thumbnails_dir=thumb_dir,
+    )
+    thumb_path_str = record["data"].get("thumbnail_file")
+    assert thumb_path_str is not None
+    thumb_path = Path(thumb_path_str)
+    assert thumb_path.is_file()
+    assert thumb_path.name == "test_no_exif_thumb.jpg"
+    with Image.open(thumb_path) as thumb_img:
+        assert thumb_img.format == "JPEG"
+        assert thumb_img.width <= 320
+        assert thumb_img.height <= 320

@@ -1,4 +1,4 @@
-"""Image evidence processing with EXIF metadata, GPS coordinate conversion, and computer vision."""
+"""Image evidence processing with EXIF metadata, GPS coordinate conversion, computer vision, and thumbnail generation."""
 
 from __future__ import annotations
 
@@ -16,6 +16,40 @@ from .vision import detect_objects
 logger = logging.getLogger("member_2_evidence.image")
 
 SUPPORTED_IMAGE_EXTENSIONS = frozenset({".png", ".jpg", ".jpeg", ".webp"})
+
+
+def generate_image_thumbnail(
+    image: Image.Image,
+    source_filename: str,
+    output_dir: Path | None = None,
+    max_size: tuple[int, int] = (320, 320),
+) -> str | None:
+    """
+    Generate a lightweight JPEG thumbnail saved to real_outputs/processed/thumbnails/.
+    Returns the string path of the generated thumbnail.
+    """
+    try:
+        if output_dir is None:
+            # Resolve to real_outputs/processed/thumbnails/
+            project_root = Path(__file__).resolve().parents[2]
+            output_dir = project_root / "real_outputs" / "processed" / "thumbnails"
+
+        output_dir.mkdir(parents=True, exist_ok=True)
+        stem = Path(source_filename).stem
+        thumb_filename = f"{stem}_thumb.jpg"
+        thumb_path = output_dir / thumb_filename
+
+        # Create a copy and resize
+        thumb_img = image.copy()
+        if thumb_img.mode in ("RGBA", "P"):
+            thumb_img = thumb_img.convert("RGB")
+        thumb_img.thumbnail(max_size, Image.Resampling.LANCZOS)
+        thumb_img.save(thumb_path, format="JPEG", quality=85, optimize=True)
+
+        return str(thumb_path)
+    except Exception as exc:
+        logger.warning("Failed to generate image thumbnail for %s: %s", source_filename, exc)
+        return None
 
 
 def _convert_dms_to_decimal(dms_values: Any) -> float | None:
@@ -60,7 +94,6 @@ def extract_gps_info(exif_data: Any) -> dict[str, float | None] | None:
     if not exif_data:
         return None
 
-    # In PIL, get_ifd(ExifTags.IFD.GPSInfo) or tag 34853
     gps_info = None
     if hasattr(exif_data, "get_ifd"):
         try:
@@ -74,13 +107,6 @@ def extract_gps_info(exif_data: Any) -> dict[str, float | None] | None:
     if not gps_info or not isinstance(gps_info, dict):
         return None
 
-    # GPS Tag IDs:
-    # 1: GPSLatitudeRef ('N' or 'S')
-    # 2: GPSLatitude (DMS)
-    # 3: GPSLongitudeRef ('E' or 'W')
-    # 4: GPSLongitude (DMS)
-    # 5: GPSAltitudeRef (0 = above sea level, 1 = below sea level)
-    # 6: GPSAltitude
     lat_dms = gps_info.get(2) or gps_info.get("GPSLatitude")
     lat_ref = gps_info.get(1) or gps_info.get("GPSLatitudeRef")
     lon_dms = gps_info.get(4) or gps_info.get("GPSLongitude")
@@ -133,10 +159,12 @@ def process_image(
     image_path: str | Path,
     case_id: str = "case-001",
     run_ai: bool = True,
+    generate_thumb: bool = True,
+    thumbnails_dir: Path | None = None,
 ) -> dict[str, Any]:
     """
-    Extract image metadata, EXIF details, GPS coordinates, and detect objects with YOLO.
-    Produces a standardized evidence record.
+    Extract image metadata, EXIF details, GPS coordinates, generate thumbnail,
+    and detect objects with YOLO. Produces a standardized evidence record.
     """
     if not case_id or not str(case_id).strip():
         raise ValueError("A non-empty case_id is required.")
@@ -159,7 +187,6 @@ def process_image(
 
     try:
         with Image.open(path) as image:
-            # Basic image properties
             image_format = image.format or path.suffix.lstrip(".").upper()
             width, height = image.width, image.height
             mode = image.mode
@@ -178,16 +205,22 @@ def process_image(
             normalized_timestamp = None
 
             if exif_obj:
-                # 36867: DateTimeOriginal, 36868: DateTimeDigitized, 306: DateTime
                 date_original_raw = exif_obj.get(36867) or exif_obj.get(36868)
                 date_modified_raw = exif_obj.get(306)
-
-                # Prioritize DateTimeOriginal, fallback to DateTime
                 timestamp_source = date_original_raw or date_modified_raw
                 normalized_timestamp = _parse_exif_timestamp(timestamp_source)
                 gps_data = extract_gps_info(exif_obj)
 
-            # AI Object Detection using YOLO
+            # Automated Thumbnail Generation
+            thumbnail_file = None
+            if generate_thumb:
+                thumbnail_file = generate_image_thumbnail(
+                    image=image,
+                    source_filename=path.name,
+                    output_dir=thumbnails_dir,
+                )
+
+            # AI Object Detection using cached YOLO
             objects_detected: list[dict[str, Any]] = []
             ai_analysis_info: dict[str, Any] = {
                 "available": False,
@@ -221,6 +254,7 @@ def process_image(
                     "height": height,
                     "mode": mode,
                     "file_size_bytes": file_size_bytes,
+                    "thumbnail_file": thumbnail_file,
                     "exif": {
                         "date_time_original": date_original_raw,
                         "date_time": date_modified_raw,
@@ -247,10 +281,7 @@ def save_evidence(evidence: dict[str, Any], output_path: str | Path) -> None:
         try:
             with output.open("r", encoding="utf-8") as file:
                 loaded = json.load(file)
-                if isinstance(loaded, list):
-                    records = loaded
-                else:
-                    records = [loaded]
+                records = loaded if isinstance(loaded, list) else [loaded]
         except (json.JSONDecodeError, OSError):
             records = []
 

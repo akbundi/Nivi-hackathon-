@@ -93,6 +93,90 @@ def test_real_evidence_processor_adapter(
     assert rec_ids == {"ev-img-001", "ev-sen-002"}
     assert all(r.outcome == "available" for r in result.records)
 
+    # Test failure outcome on missing storage path
+    bad_inputs = [
+        MockEvidenceInput(
+            id="ev-missing-999",
+            filename="missing.jpg",
+            content_type="image/jpeg",
+            sha256="deadbeef",
+            storage_path=tmp_path / "non_existent.jpg",
+            metadata={},
+        )
+    ]
+    bad_result = adapter.process(case_id="case-fail", evidence=bad_inputs)
+    assert len(bad_result.records) == 1
+    assert bad_result.records[0].outcome == "failed"
+    assert bad_result.records[0].provenance == ["ev-missing-999"]
+
+
+def test_blob_storage_routing_and_magic_bytes(
+    synthetic_image_no_exif: Path,
+    synthetic_text_pdf: Path,
+    tmp_path: Path,
+):
+    """Verify raw .blob files without extensions are routed via magic byte inspection."""
+    # Create image .blob
+    image_blob = tmp_path / "1a2b3c4d5e6f.blob"
+    image_blob.write_bytes(synthetic_image_no_exif.read_bytes())
+    assert identify_evidence_type(image_blob) == "image"
+
+    rec = dispatch_process(
+        image_blob,
+        case_id="case-blob",
+        filename="captured_photo.png",
+        shared_output_path=tmp_path / "blob_ev.json",
+    )
+    assert rec["type"] == "image"
+    assert rec["data"]["filename"] == "captured_photo.png"
+
+    # Create PDF .blob
+    pdf_blob = tmp_path / "fedcba987654.blob"
+    pdf_blob.write_bytes(synthetic_text_pdf.read_bytes())
+    assert identify_evidence_type(pdf_blob) == "document"
+
+    rec_pdf = dispatch_process(
+        pdf_blob,
+        case_id="case-blob-pdf",
+        shared_output_path=tmp_path / "blob_ev.json",
+    )
+    assert rec_pdf["type"] == "document"
+
+
+def test_schema_validator_cli(tmp_path: Path):
+    """Test standalone schema validator against valid and invalid evidence files."""
+    valid_record = {
+        "id": "11111111-2222-3333-4444-555555555555",
+        "case_id": "case-test",
+        "type": "image",
+        "timestamp": "2026-10-30T10:00:00Z",
+        "source": "/data/test.jpg",
+        "confidence": 0.95,
+        "status": "OBSERVED",
+        "data": {"resolution": "1920x1080"},
+    }
+    valid_file = tmp_path / "valid_evidence.json"
+    valid_file.write_text(json.dumps([valid_record]), encoding="utf-8")
+
+    is_valid, errors, count = validate_evidence_file(valid_file)
+    assert is_valid is True
+    assert len(errors) == 0
+    assert count == 1
+
+    # Invalid record (missing required keys, invalid status, invalid confidence)
+    invalid_record = {
+        "id": "123",
+        "type": "unsupported_type",
+        "status": "INVALID_STATUS",
+        "confidence": 5.0,
+    }
+    invalid_file = tmp_path / "invalid_evidence.json"
+    invalid_file.write_text(json.dumps([invalid_record]), encoding="utf-8")
+
+    is_valid_inv, errors_inv, count_inv = validate_evidence_file(invalid_file)
+    assert is_valid_inv is False
+    assert len(errors_inv) > 0
+
 
 def test_member_6_backend_pipeline_with_real_adapter(tmp_path: Path, monkeypatch):
     """Test full integration with Member 6 backend pipeline in real adapter mode."""

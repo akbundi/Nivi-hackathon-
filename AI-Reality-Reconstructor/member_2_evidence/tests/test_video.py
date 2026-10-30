@@ -13,18 +13,25 @@ from member_2_evidence.video.video_processor import (
 
 def test_video_metadata_and_frame_extraction(synthetic_video: Path, tmp_path: Path):
     out_dir = tmp_path / "custom_frames"
+    thumb_dir = tmp_path / "custom_thumbs"
     video_rec, frame_recs = process_video(
         synthetic_video,
         case_id="case-201",
         interval_seconds=0.5,  # Sample every 0.5s of the 2.0s video
         max_frames=10,
         detect_scene_changes=True,
+        generate_thumb=True,
         output_dir=out_dir,
+        thumbnails_dir=thumb_dir,
     )
 
     assert video_rec["case_id"] == "case-201"
     assert video_rec["type"] == "video"
     assert video_rec["status"] == "OBSERVED"
+
+    # Verify video thumbnail was created
+    assert video_rec["data"].get("thumbnail_file") is not None
+    assert Path(video_rec["data"]["thumbnail_file"]).is_file()
 
     meta = video_rec["data"]["metadata"]
     assert meta["width"] == 320

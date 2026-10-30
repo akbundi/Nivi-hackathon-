@@ -1,4 +1,4 @@
-"""Video evidence processing with OpenCV decoding, frame extraction, scene change detection, and FFmpeg fallback."""
+"""Video evidence processing with OpenCV decoding, frame extraction, scene change detection, FFmpeg fallback, and thumbnail generation."""
 
 from __future__ import annotations
 
@@ -12,12 +12,50 @@ from pathlib import Path
 from typing import Any
 
 import cv2
+from PIL import Image
 
 from ..image.vision import detect_objects
 
 logger = logging.getLogger("member_2_evidence.video")
 
 SUPPORTED_VIDEO_EXTENSIONS = frozenset({".mp4", ".avi", ".mov", ".mkv"})
+
+
+def generate_video_thumbnail(
+    frame_array_or_path: Any,
+    video_stem: str,
+    output_dir: Path | None = None,
+    max_size: tuple[int, int] = (320, 320),
+) -> str | None:
+    """
+    Generate a lightweight JPEG thumbnail from a video frame saved to real_outputs/processed/thumbnails/.
+    """
+    try:
+        if output_dir is None:
+            project_root = Path(__file__).resolve().parents[2]
+            output_dir = project_root / "real_outputs" / "processed" / "thumbnails"
+
+        output_dir.mkdir(parents=True, exist_ok=True)
+        thumb_filename = f"{video_stem}_thumb.jpg"
+        thumb_path = output_dir / thumb_filename
+
+        if isinstance(frame_array_or_path, (str, Path)):
+            pil_img = Image.open(str(frame_array_or_path))
+        else:
+            # OpenCV BGR numpy array
+            rgb_frame = cv2.cvtColor(frame_array_or_path, cv2.COLOR_BGR2RGB)
+            pil_img = Image.fromarray(rgb_frame)
+
+        if pil_img.mode in ("RGBA", "P"):
+            pil_img = pil_img.convert("RGB")
+
+        pil_img.thumbnail(max_size, Image.Resampling.LANCZOS)
+        pil_img.save(thumb_path, format="JPEG", quality=85, optimize=True)
+
+        return str(thumb_path)
+    except Exception as exc:
+        logger.warning("Failed to generate video thumbnail for %s: %s", video_stem, exc)
+        return None
 
 
 def find_ffmpeg_executable() -> Path | None:
@@ -35,7 +73,6 @@ def find_ffmpeg_executable() -> Path | None:
     if which_path:
         return Path(which_path)
 
-    # Common Windows fallback location documented in project
     fallback = Path(r"C:\ffmpeg-temp\ffmpeg-9.0.2-essentials_build\bin\ffmpeg.exe")
     if fallback.is_file():
         return fallback
@@ -86,7 +123,7 @@ def _extract_frames_ffmpeg(
     output_dir: Path,
     interval_seconds: float,
 ) -> list[Path]:
-    """Fallback frame extraction using FFmpeg CLI."""
+    """Fallback frame extraction using external FFmpeg CLI."""
     ffmpeg = find_ffmpeg_executable()
     if not ffmpeg:
         raise RuntimeError("FFmpeg executable not found and OpenCV could not decode the video.")
@@ -117,15 +154,14 @@ def process_video(
     max_frames: int = 60,
     detect_scene_changes: bool = True,
     run_ai_on_frames: bool = False,
+    generate_thumb: bool = True,
     output_dir: Path | None = None,
+    thumbnails_dir: Path | None = None,
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     """
     Process video evidence with OpenCV (and FFmpeg fallback).
-    Extracts metadata and sampled frames, identifies scene transitions, and produces
-    standardized evidence records for the video and individual frames.
-
-    Returns:
-        (video_evidence_record, list_of_frame_evidence_records)
+    Extracts metadata, sampled frames, scene transitions, and thumbnail.
+    Returns: (video_evidence_record, list_of_frame_evidence_records)
     """
     if not case_id or not str(case_id).strip():
         raise ValueError("A non-empty case_id is required.")
@@ -146,7 +182,6 @@ def process_video(
             f"Supported: {', '.join(sorted(SUPPORTED_VIDEO_EXTENSIONS))}"
         )
 
-    # Resolve frame storage directory
     if output_dir is None:
         project_root = Path(__file__).resolve().parents[2]
         frames_dir = project_root / "real_outputs" / "video_frames" / path.stem
@@ -159,6 +194,7 @@ def process_video(
     metadata: dict[str, Any] = {}
     extracted_frames_info: list[dict[str, Any]] = []
     used_engine = "opencv"
+    first_frame_captured = None
 
     if cap.isOpened():
         try:
@@ -174,6 +210,9 @@ def process_video(
                 ret, frame = cap.read()
                 if not ret:
                     break
+
+                if first_frame_captured is None:
+                    first_frame_captured = frame.copy()
 
                 if frame_idx % frame_step == 0:
                     saved_count += 1
@@ -224,6 +263,16 @@ def process_video(
     if not extracted_frames_info:
         raise ValueError(f"Failed to decode or extract any frames from video: {path}")
 
+    # Generate video thumbnail
+    video_thumbnail_file = None
+    if generate_thumb:
+        thumb_source = first_frame_captured if first_frame_captured is not None else extracted_frames_info[0]["frame_file"]
+        video_thumbnail_file = generate_video_thumbnail(
+            frame_array_or_path=thumb_source,
+            video_stem=path.stem,
+            output_dir=thumbnails_dir,
+        )
+
     # Primary Video Record
     video_record = {
         "id": str(uuid.uuid4()),
@@ -239,6 +288,7 @@ def process_video(
             "file_size_bytes": path.stat().st_size,
             "engine": used_engine,
             "metadata": metadata,
+            "thumbnail_file": video_thumbnail_file,
             "extracted_frames_count": len(extracted_frames_info),
             "extraction_interval_seconds": interval_seconds,
             "frames_directory": str(frames_dir),

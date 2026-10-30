@@ -1,0 +1,56 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "EvidenceRecord",
+  "description": "Canonical schema for multimodal evidence records in AI-Reality-Reconstructor",
+  "type": "object",
+  "required": [
+    "id",
+    "case_id",
+    "type",
+    "timestamp",
+    "source",
+    "confidence",
+    "status",
+    "data"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique identifier for the evidence record (UUIDv4)"
+    },
+    "case_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Identifier of the investigation case this evidence belongs to"
+    },
+    "type": {
+      "type": "string",
+      "enum": ["image", "video", "video_frame", "document", "sensor"],
+      "description": "Modality type of the evidence"
+    },
+    "timestamp": {
+      "type": ["string", "null"],
+      "description": "ISO-8601 formatted capture or recorded timestamp, or null if unknown"
+    },
+    "source": {
+      "type": "string",
+      "description": "Original source file path or URI"
+    },
+    "confidence": {
+      "type": ["number", "null"],
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "description": "Epistemic confidence score from 0.0 to 1.0, or null"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["OBSERVED", "INFERRED", "UNKNOWN"],
+      "description": "Epistemic status of the evidence record"
+    },
+    "data": {
+      "type": "object",
+      "description": "Modality-specific extracted metadata and findings"
+    }
+  },
+  "additionalProperties": true
+}

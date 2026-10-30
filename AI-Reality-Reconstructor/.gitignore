@@ -1,0 +1,7 @@
+__pycache__/
+*.py[cod]
+*$py.class
+*.pt
+real_outputs/video_frames/
+real_outputs/processed/thumbnails/
+.pytest_cache/
