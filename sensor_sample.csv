@@ -1,0 +1,4 @@
+timestamp,temperature,humidity,location
+2026-10-21T09:00:00,32.5,65,Building-A
+2026-10-21T09:05:00,33.1,63,Building-A
+2026-10-21T09:10:00,34.0,60,Building-A
